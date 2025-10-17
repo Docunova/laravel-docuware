@@ -2,7 +2,10 @@
 
 namespace CodebarAg\DocuWare\Requests\Documents\ModifyDocuments;
 
+use Arr;
+use CodebarAg\DocuWare\DTO\Documents\DocumentIndex\PrepareDTO;
 use CodebarAg\DocuWare\Responses\Documents\ModifyDocuments\TransferDocumentResponse;
+use Illuminate\Support\Collection;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
@@ -18,14 +21,23 @@ class TransferDocument extends Request implements HasBody
     public function __construct(
         protected readonly string $fileCabinetId,
         protected readonly string $destinationFileCabinetId,
-        protected readonly string $storeDialogId,
         protected readonly string $documentId,
-        protected readonly array $fields = [],
+        protected readonly ?string $storeDialogId = null,
+        protected readonly ?Collection $fields = null,
+        protected readonly bool $keepSource = false,
+        protected readonly bool $fillIntellix = false,
+        protected readonly bool $useDefaultDialog = false,
     ) {}
 
     public function resolveEndpoint(): string
     {
-        return '/FileCabinets/'.$this->destinationFileCabinetId.'/Task/Transfer';
+        $endpoint = '/FileCabinets/'.$this->destinationFileCabinetId.'/Task/Transfer';
+
+        if ($this->storeDialogId) {
+            $endpoint .= '?StoreDialogId='.$this->storeDialogId;
+        }
+
+        return $endpoint;
     }
 
     protected function defaultHeaders(): array
@@ -39,18 +51,20 @@ class TransferDocument extends Request implements HasBody
 
     protected function defaultBody(): array
     {
-        return [
+        $body = [
             'SourceFileCabinetId' => $this->fileCabinetId,
             'Documents' => [
                 [
                     'Id' => $this->documentId,
-                    'Fields' => $this->fields,
+                    'Fields' => $this->fields ? Arr::get(PrepareDTO::makeField($this->fields), 'Field') : null,
                 ],
             ],
-            'KeepSource' => false,
-            'FillIntellix' => false,
-            'UseDefaultDialog' => false,
+            'KeepSource' => $this->keepSource,
+            'FillIntellix' => $this->fillIntellix,
+            'UseDefaultDialog' => $this->useDefaultDialog,
         ];
+
+        return $body;
     }
 
     public function createDtoFromResponse(Response $response): bool

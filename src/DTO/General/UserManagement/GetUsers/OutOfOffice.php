@@ -10,14 +10,22 @@ final class OutOfOffice
 {
     public static function fromJson(array $data): self
     {
-        if ($startDateTime = Arr::get($data, 'StartDateTime')) {
+        $startDateTime = Arr::get($data, 'StartDateTime');
+
+        $timeZone = config('app.timezone', 'UTC');
+
+        if (filled($startDateTime)) {
             $startDateTime = Str::of($startDateTime)->after('(')->before(')');
-            $startDateTime = Carbon::createFromTimestamp($startDateTime);
+            $milliseconds = (int) (string) $startDateTime;
+            $startDateTime = Carbon::createFromTimestampMs($milliseconds, $timeZone);
         }
 
-        if ($endDateTime = Arr::get($data, 'EndDateTime')) {
+        $endDateTime = Arr::get($data, 'EndDateTime');
+
+        if (filled($endDateTime)) {
             $endDateTime = Str::of($endDateTime)->after('(')->before(')');
-            $endDateTime = Carbon::createFromTimestamp($endDateTime);
+            $milliseconds = (int) (string) $endDateTime;
+            $endDateTime = Carbon::createFromTimestampMs($milliseconds, $timeZone);
         }
 
         return new self(
